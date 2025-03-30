@@ -41,7 +41,7 @@ export function MarketHeatmap({}) {
   }, [])
 
   return (
-    <div style={{ height: '500px' }}>
+    <div style={{ height: '1000px' }}>
       <div
         className="tradingview-widget-container"
         ref={container}

@@ -42,8 +42,8 @@ interface MutableAIState {
   get: () => AIState
 }
 
-const MODEL = 'llama3-70b-8192'
-const TOOL_MODEL = 'llama3-70b-8192'
+const MODEL = 'llama3.3'
+const TOOL_MODEL = 'llama3-groq-tool-use'
 const GROQ_API_KEY_ENV = process.env.GROQ_API_KEY
 
 type ComparisonSymbolObject = {
@@ -58,7 +58,7 @@ async function generateCaption(
   aiState: MutableAIState
 ): Promise<string> {
   const groq = createOpenAI({
-    baseURL: 'https://api.groq.com/openai/v1',
+    baseURL: 'http://localhost:11434/v1',
     apiKey: GROQ_API_KEY_ENV
   })
   
@@ -185,10 +185,11 @@ async function submitUserMessage(content: string) {
 
   let textStream: undefined | ReturnType<typeof createStreamableValue<string>>
   let textNode: undefined | React.ReactNode
+  let streamClosed = false; // Track if the stream is closed
 
   try {
     const groq = createOpenAI({
-      baseURL: 'https://api.groq.com/openai/v1',
+      baseURL: 'http://localhost:11434/v1',
       apiKey: GROQ_API_KEY_ENV
     })
 
@@ -229,7 +230,10 @@ Assistant (you): { "tool_call": { "id": "pending", "type": "function", "function
         }
 
         if (done) {
-          textStream.done()
+          if (!streamClosed) {
+            textStream.done()
+            streamClosed = true // Mark the stream as closed
+          }
           aiState.done({
             ...aiState.get(),
             messages: [
@@ -242,7 +246,9 @@ Assistant (you): { "tool_call": { "id": "pending", "type": "function", "function
             ]
           })
         } else {
-          textStream.update(delta)
+          if (!streamClosed) {
+            textStream.update(delta) // Only update if the stream is not closed
+          }
         }
 
         return textNode
